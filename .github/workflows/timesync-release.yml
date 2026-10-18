@@ -1,0 +1,75 @@
+name: Build and release TimeSyncAssistant
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'TimeSyncAssistant/**'
+      - '.github/workflows/timesync-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: timesync-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: TimeSyncAssistant
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Verify NTP logic and local UDP exchange on Windows
+        run: |
+          dotnet run --project Tests/TimeSync.Tests.csproj -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Time synchronization checks failed.' }
+      - name: Build self-contained Windows executables
+        run: |
+          foreach ($runtime in @('win-x64', 'win-arm64')) {
+            dotnet publish App/TimeSyncAssistant.csproj -c Release -r $runtime --self-contained true '-p:PublishSingleFile=true' '-p:IncludeNativeLibrariesForSelfExtract=true' '-p:DebugType=None' -o "dist/$runtime"
+            if ($LASTEXITCODE -ne 0) { throw "Publish failed: $runtime" }
+            Get-ChildItem "dist/$runtime" -Filter '*.pdb' | Remove-Item
+            Copy-Item README.md "dist/$runtime/使用说明.md"
+            Compress-Archive -Path "dist/$runtime/*" -DestinationPath "dist/TimeSyncAssistant-$runtime.zip" -Force
+          }
+          $hashes = Get-ChildItem dist -Filter '*.zip' | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          $hashes | Set-Content dist/SHA256SUMS.txt -Encoding utf8
+      - name: Save build packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: TimeSyncAssistant-packages
+          path: |
+            TimeSyncAssistant/dist/*.zip
+            TimeSyncAssistant/dist/SHA256SUMS.txt
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          [xml]$project = Get-Content App/TimeSyncAssistant.csproj
+          $version = $project.Project.PropertyGroup.Version
+          $tag = "timesync-v$version"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag already exists. Increment the project version to publish a new release."
+            exit 0
+          }
+          gh release create $tag --draft --target '${{ github.sha }}' --title "时间同步助手 v$version" --notes-file RELEASE-NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed.' }
+          gh release upload $tag dist/TimeSyncAssistant-win-x64.zip dist/TimeSyncAssistant-win-arm64.zip dist/SHA256SUMS.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Release asset upload failed.' }
+          gh release edit $tag --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }
