@@ -1,5 +1,4 @@
 # MyGit
-ZYZ's 大创项目
 
 ## 时间同步助手（Windows 11）
 
