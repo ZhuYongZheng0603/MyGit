@@ -22,6 +22,7 @@ internal sealed class MainForm : Form
     private readonly string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TimeSyncAssistant", "settings.json");
     private bool busy;
     private bool loaded;
+    private bool resourcesDisposed;
     private static readonly string[] DefaultServers = ["ntp.aliyun.com", "ntp.tencent.com", "time.windows.com", "time.cloudflare.com"];
     private sealed record ZoneItem(TimeZoneInfo Zone)
     {
@@ -309,8 +310,9 @@ internal sealed class MainForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
+        if (disposing && !resourcesDisposed)
         {
+            resourcesDisposed = true;
             lifetime.Cancel(); lifetime.Dispose(); displayTimer.Dispose(); autoTimer.Dispose();
         }
         base.Dispose(disposing);
