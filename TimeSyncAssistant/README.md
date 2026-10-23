@@ -15,6 +15,10 @@
 
 发布包自带 .NET 10 运行时，无需安装 Python、.NET SDK 或其他开发工具，也无需安装本应用。首次启动需要解压内置运行时，可能稍慢。本程序未做商业代码签名，Windows 可能显示未知发布者；请在确认文件来源后运行。
 
+## v1.0.1 界面修复
+
+采用内容自适应布局，长文字自动换行。小窗口下可垂直滚动，不再依赖固定行高；支持 PerMonitorV2 显示缩放。
+
 ## 功能
 
 - 时区默认北京时间，支持切换到东京、伦敦、纽约等 Windows 时区。
@@ -52,7 +56,7 @@ dotnet run --project Tests/TimeSync.Tests.csproj -c Release
 dotnet publish App/TimeSyncAssistant.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist/win-x64
 ```
 
-`Core` 为独立校时逻辑，`App` 为 Windows Forms 界面与系统接口，`Tests` 为不修改系统时钟的协议验证及本地 UDP 集成检查。
+`Core` 为独立校时逻辑，`App` 为 Windows Forms 界面与系统接口，`Tests` 为不修改系统时钟的协议验证及本地 UDP 集成检查。`LayoutTests` 在 Windows 上检查小窗口及放大字体的裁切和重叠，不执行校时操作。
 
 ## 验证范围
 

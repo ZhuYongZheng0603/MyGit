@@ -34,52 +34,63 @@ internal sealed class MainForm : Form
         Text = "时间同步助手";
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         Font = new Font("Microsoft YaHei UI", 10);
+        // Establish the 96-DPI design baseline before creating any child controls.
+        AutoScaleDimensions = new SizeF(96, 96);
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(780, 760);
-        MinimumSize = new Size(720, 740);
+        ClientSize = new Size(720, 760);
+        MinimumSize = new Size(440, 420);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Color.FromArgb(245, 247, 251);
-        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 8, Padding = new Padding(28) };
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        foreach (var size in new float[] { 65, 152, 170, 56, 38, 48, 0, 34 })
-            root.RowStyles.Add(size == 0 ? new RowStyle(SizeType.Percent, 100) : new RowStyle(SizeType.Absolute, size));
-        Controls.Add(root);
+        SuspendLayout();
 
-        var heading = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false };
-        heading.Controls.Add(new Label { AutoSize = true, Text = "时间同步助手", Font = new Font(Font.FontFamily, 22, FontStyle.Bold) });
-        heading.Controls.Add(new Label { AutoSize = true, Text = "让电脑时间，与世界保持一致。", ForeColor = Color.DimGray });
-        root.Controls.Add(heading, 0, 0);
+        var viewport = new Panel { Name = "viewport", Dock = DockStyle.Fill, AutoScroll = true };
+        var root = new ContentColumn { Name = "content", Padding = new Padding(20) };
+        viewport.Controls.Add(root);
+        Controls.Add(viewport);
 
-        var card = new FlowLayoutPanel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(18, 8, 8, 8), FlowDirection = FlowDirection.TopDown, WrapContents = false };
-        card.Controls.Add(new Label { AutoSize = true, Text = "所选时区时间 · 根据本机时钟预览", ForeColor = Color.DimGray });
-        card.Controls.Add(clock);
-        card.Controls.Add(date);
-        card.Controls.Add(system);
-        root.Controls.Add(card, 0, 1);
+        root.Add(new Label { Name = "heading", AutoSize = true, Dock = DockStyle.Top,
+            Text = "时间同步助手", Font = new Font(Font.FontFamily, 22, FontStyle.Bold) });
+        root.Add(Note("让电脑时间，与世界保持一致。"));
 
-        var settings = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4, Padding = new Padding(0, 18, 0, 4) };
-        settings.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 105));
-        settings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        settings.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-        settings.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-        settings.RowStyles.Add(new RowStyle(SizeType.Absolute, 25));
-        settings.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        settings.Controls.Add(new Label { AutoSize = true, Text = "目标时区", Padding = new Padding(0, 4, 0, 0) }, 0, 0);
-        settings.Controls.Add(zones, 1, 0);
-        settings.Controls.Add(new Label { AutoSize = true, Text = "时间服务器", Padding = new Padding(0, 4, 0, 0) }, 0, 1);
-        settings.Controls.Add(servers, 1, 1);
-        var hint = new Label { AutoSize = true, Text = "可输入 NTP 域名或 IP；连接失败会尝试备用服务器。", ForeColor = Color.DimGray };
-        settings.Controls.Add(hint, 1, 2);
-        settings.Controls.Add(periodic, 1, 3);
-        root.Controls.Add(settings, 0, 2);
+        var card = new ContentColumn { Name = "clockCard", BackColor = Color.White,
+            Padding = new Padding(16), Margin = new Padding(0, 12, 0, 16) };
+        card.Add(Note("所选时区时间 · 根据本机时钟预览"));
+        clock.Name = "clock";
+        card.Add(clock);
+        card.Add(date);
+        card.Add(system);
+        root.Add(card);
 
-        var actions = new FlowLayoutPanel { Dock = DockStyle.Fill };
-        actions.Controls.Add(sync); actions.Controls.Add(check);
-        root.Controls.Add(actions, 0, 3);
-        root.Controls.Add(status, 0, 4);
-        root.Controls.Add(new Label { AutoSize = true, Text = "立即同步将修改 Windows 系统时区和系统时间。\n切换时区会自动采用该地区的夏令时规则。", ForeColor = Color.DimGray }, 0, 5);
-        root.Controls.Add(logs, 0, 6);
-        root.Controls.Add(new Label { AutoSize = true, Text = "Windows 11 · 本地应用 · v1.0", ForeColor = Color.Gray, Padding = new Padding(0, 8, 0, 0) }, 0, 7);
+        // Stack field labels above their inputs: neither column can steal label space.
+        root.Add(FieldLabel("目标时区"));
+        zones.Margin = new Padding(0, 4, 0, 12);
+        root.Add(zones);
+        root.Add(FieldLabel("时间服务器"));
+        servers.Margin = new Padding(0, 4, 0, 6);
+        root.Add(servers);
+        root.Add(Note("可输入 NTP 域名或 IP；连接失败会尝试备用服务器。"));
+        periodic.Text = "每小时自动同步";
+        periodic.Margin = new Padding(0, 12, 0, 4);
+        root.Add(periodic);
+        root.Add(Note("仅在本程序运行时生效，关闭后停止。"));
+
+        var actions = new FlowLayoutPanel { Name = "actions", Dock = DockStyle.Top,
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true,
+            Margin = new Padding(0, 16, 0, 6) };
+        actions.Controls.Add(sync);
+        actions.Controls.Add(check);
+        root.Add(actions);
+        status.Name = "status";
+        status.Margin = new Padding(0, 4, 0, 8);
+        root.Add(status);
+        root.Add(Note("立即同步将修改 Windows 系统时区和系统时间。切换时区会自动采用该地区的夏令时规则。"));
+        logs.Name = "logs";
+        logs.Dock = DockStyle.Top;
+        logs.Height = 160;
+        logs.Margin = new Padding(0, 12, 0, 8);
+        root.Add(logs);
+        root.Add(Note("Windows 11 · 本地应用 · v1.0.1"));
+        ResumeLayout(true);
 
         var allZones = TimeZoneInfo.GetSystemTimeZones();
         foreach (var zone in allZones.OrderBy(z => z.Id == "China Standard Time" ? 0 : 1).ThenBy(z => z.BaseUtcOffset))
@@ -103,9 +114,53 @@ internal sealed class MainForm : Form
         Log("默认目标为北京时间；启动和选择时区不会修改系统设置。");
     }
 
+    private static Label Note(string text) => new()
+    {
+        AutoSize = true, Dock = DockStyle.Top, Text = text, ForeColor = Color.DimGray,
+        Margin = new Padding(0, 2, 0, 4)
+    };
+
+    private static Label FieldLabel(string text) => new()
+    {
+        AutoSize = true, Dock = DockStyle.Top, Text = text, Margin = Padding.Empty
+    };
+
+    // Every row follows its content height. Only the viewport scrolls when space is short.
+    private sealed class ContentColumn : TableLayoutPanel
+    {
+        public ContentColumn()
+        {
+            Dock = DockStyle.Top;
+            AutoSize = true;
+            AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            ColumnCount = 1;
+            ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            Margin = Padding.Empty;
+        }
+
+        public void Add(Control control)
+        {
+            RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            Controls.Add(control, 0, RowCount++);
+        }
+
+        protected override void OnLayout(LayoutEventArgs e)
+        {
+            // Label.MaximumSize makes long Chinese text wrap before its row is measured.
+            foreach (Control child in Controls)
+            {
+                if (child is not Label && child is not CheckBox) continue;
+                var maximum = new Size(Math.Max(1, ClientSize.Width - Padding.Horizontal - child.Margin.Horizontal), 0);
+                if (child.MaximumSize != maximum) child.MaximumSize = maximum;
+            }
+            base.OnLayout(e);
+        }
+    }
+
     private static Button Button(string text, bool primary = false) => new()
     {
-        Text = text, AutoSize = true, Size = new Size(160, 42), Margin = new Padding(0, 0, 12, 0),
+        Text = text, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
+        Padding = new Padding(16, 8, 16, 8), Margin = new Padding(0, 0, 12, 8),
         FlatStyle = FlatStyle.Flat, BackColor = primary ? Color.FromArgb(38, 93, 184) : Color.White,
         ForeColor = primary ? Color.White : Color.FromArgb(40, 50, 65), Cursor = Cursors.Hand
     };
