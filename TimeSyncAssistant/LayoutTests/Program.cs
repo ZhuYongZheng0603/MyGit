@@ -23,14 +23,14 @@ internal static class Program
                 status.Text = "检测完成 · 校正量 +123.456 秒（未修改系统） · time.cloudflare.com";
                 for (int i = 0; i < 4; i++) { form.PerformLayout(); Application.DoEvents(); }
                 var content = form.Controls.Find("content", true).Single();
+                using var bitmap = new Bitmap(content.Width, content.Height);
+                content.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                bitmap.Save($"dist/layout-checks/text-{textScale:0.00}-{size.Width}x{size.Height}.png");
                 Check(content);
                 var viewport = (Panel)form.Controls.Find("viewport", true).Single();
                 if (content.Height > viewport.ClientSize.Height && !viewport.VerticalScroll.Visible)
                     throw new Exception("Short window must provide a vertical scrollbar.");
                 if (viewport.HorizontalScroll.Visible) throw new Exception("Layout overflowed horizontally.");
-                using var bitmap = new Bitmap(content.Width, content.Height);
-                content.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
-                bitmap.Save($"dist/layout-checks/text-{textScale:0.00}-{size.Width}x{size.Height}.png");
                 Console.WriteLine($"PASS: text scale {textScale:0.00}, window {size.Width}x{size.Height}");
             }
             form.Close();
@@ -57,6 +57,6 @@ internal static class Program
         for (int i = 0; i < children.Length; i++)
             for (int j = i + 1; j < children.Length; j++)
                 if (children[i].Bounds.IntersectsWith(children[j].Bounds))
-                    throw new Exception($"Controls overlap: {children[i].Text} / {children[j].Text}");
+                    throw new Exception($"Controls overlap: {children[i].Text} {children[i].Bounds} / {children[j].Text} {children[j].Bounds}");
     }
 }

@@ -150,6 +150,14 @@ internal sealed class MainForm : Form
             // Label.MaximumSize makes long Chinese text wrap before its row is measured.
             foreach (Control child in Controls)
             {
+                // The native ComboBox grows with its font even when its cached preferred
+                // size still reports the old height. Reserve its real native height first.
+                if (child is ComboBox combo)
+                {
+                    var minimum = new Size(0, combo.PreferredHeight);
+                    if (combo.MinimumSize != minimum) combo.MinimumSize = minimum;
+                    continue;
+                }
                 if (child is not Label && child is not CheckBox) continue;
                 var maximum = new Size(Math.Max(1, ClientSize.Width - Padding.Horizontal - child.Margin.Horizontal), 0);
                 if (child.MaximumSize != maximum) child.MaximumSize = maximum;
