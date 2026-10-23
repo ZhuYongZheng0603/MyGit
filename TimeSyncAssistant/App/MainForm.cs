@@ -143,6 +143,8 @@ internal sealed class MainForm : Form
         {
             RowStyles.Add(new RowStyle(SizeType.AutoSize));
             Controls.Add(control, 0, RowCount++);
+            if (control is ComboBox)
+                control.SizeChanged += (_, _) => PerformLayout();
         }
 
         protected override void OnLayout(LayoutEventArgs e)
@@ -150,12 +152,14 @@ internal sealed class MainForm : Form
             // Label.MaximumSize makes long Chinese text wrap before its row is measured.
             foreach (Control child in Controls)
             {
-                // The native ComboBox grows with its font even when its cached preferred
-                // size still reports the old height. Reserve its real native height first.
+                // Native ComboBox bounds can exceed PreferredHeight when text is enlarged.
+                // Measure the actual window too, and reserve that height plus its margins.
                 if (child is ComboBox combo)
                 {
-                    var minimum = new Size(0, combo.PreferredHeight);
-                    if (combo.MinimumSize != minimum) combo.MinimumSize = minimum;
+                    var row = RowStyles[GetRow(combo)];
+                    int height = Math.Max(combo.Height, combo.PreferredHeight) + combo.Margin.Vertical;
+                    if (row.SizeType != SizeType.Absolute) row.SizeType = SizeType.Absolute;
+                    if (row.Height != height) row.Height = height;
                     continue;
                 }
                 if (child is not Label && child is not CheckBox) continue;

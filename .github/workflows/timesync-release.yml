@@ -33,6 +33,17 @@ jobs:
         run: |
           dotnet run --project Tests/TimeSync.Tests.csproj -c Release
           if ($LASTEXITCODE -ne 0) { throw 'Time synchronization checks failed.' }
+      - name: Verify small windows and enlarged text do not clip or overlap
+        run: |
+          dotnet run --project LayoutTests/TimeSync.LayoutTests.csproj -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Window layout checks failed.' }
+      - name: Save layout screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TimeSyncAssistant-layout-checks
+          path: TimeSyncAssistant/dist/layout-checks/*.png
+          if-no-files-found: ignore
       - name: Build self-contained Windows executables
         run: |
           foreach ($runtime in @('win-x64', 'win-arm64')) {
@@ -47,17 +58,6 @@ jobs:
             "$hash  $($_.Name)"
           }
           $hashes | Set-Content dist/SHA256SUMS.txt -Encoding utf8
-      - name: Verify small windows and enlarged text do not clip or overlap
-        run: |
-          dotnet run --project LayoutTests/TimeSync.LayoutTests.csproj -c Release
-          if ($LASTEXITCODE -ne 0) { throw 'Window layout checks failed.' }
-      - name: Save layout screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: TimeSyncAssistant-layout-checks
-          path: TimeSyncAssistant/dist/layout-checks/*.png
-          if-no-files-found: ignore
       - name: Save build packages
         uses: actions/upload-artifact@v4
         with:
