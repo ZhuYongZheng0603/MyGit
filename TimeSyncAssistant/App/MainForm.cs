@@ -156,7 +156,10 @@ internal sealed class MainForm : Form
                 // Measure the actual window too, and reserve that height plus its margins.
                 if (child is ComboBox combo)
                 {
-                    var row = RowStyles[GetRow(combo)];
+                    int index = GetRow(combo);
+                    // Controls.Add raises layout once before assigning the table cell.
+                    if (index < 0 || index >= RowStyles.Count) continue;
+                    var row = RowStyles[index];
                     int height = Math.Max(combo.Height, combo.PreferredHeight) + combo.Margin.Vertical;
                     if (row.SizeType != SizeType.Absolute) row.SizeType = SizeType.Absolute;
                     if (row.Height != height) row.Height = height;
